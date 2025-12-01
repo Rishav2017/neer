@@ -43,4 +43,11 @@ class AuthController extends Controller
       return $this->error('OTP verification failed', 401, [$e->getMessage()]);
     }
   }
+
+  public function logout(Request $request)
+  {
+    $request->user()->currentAccessToken()->delete();
+
+    return $this->success(null, 'Logged out successfully');
+  }
 }

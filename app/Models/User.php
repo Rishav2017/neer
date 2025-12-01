@@ -25,6 +25,8 @@ class User extends Authenticatable
         'email',
         'phone',
         'role',
+        'expo_push_token',
+        'device_type',
         'password',
     ];
 
@@ -65,5 +67,53 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get the addresses for this user
+     */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    /**
+     * Get the default address for this user
+     */
+    public function defaultAddress()
+    {
+        return $this->hasOne(Address::class)->where('is_default', true);
+    }
+
+    /**
+     * Get the payments for this user
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get the notification logs for this user
+     */
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(NotificationLog::class);
+    }
+
+    /**
+     * Check if user has a valid Expo push token
+     */
+    public function hasExpoPushToken(): bool
+    {
+        return !empty($this->expo_push_token) && $this->isValidExpoToken($this->expo_push_token);
+    }
+
+    /**
+     * Validate Expo push token format
+     */
+    protected function isValidExpoToken(string $token): bool
+    {
+        return preg_match('/^ExponentPushToken\[.+\]$|^ExpoPushToken\[.+\]$/', $token);
     }
 }
