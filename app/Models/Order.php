@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Exceptions\InvalidOrderStatusTransitionException;
 
 class Order extends Model
@@ -49,12 +50,16 @@ class Order extends Model
         'address_id',
         'status',
         'total_amount',
+        'payment_method',
+        'payment_status',
+        'paid_at',
         'delivery_address',
         'notes',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     /**
@@ -87,6 +92,40 @@ class Order extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Get the payment for this order
+     */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    /**
+     * Mark the order as paid
+     */
+    public function markAsPaid(): bool
+    {
+        $this->payment_status = 'paid';
+        $this->paid_at = now();
+        return $this->save();
+    }
+
+    /**
+     * Check if order is paid
+     */
+    public function isPaid(): bool
+    {
+        return $this->payment_status === 'paid';
+    }
+
+    /**
+     * Check if order is COD
+     */
+    public function isCOD(): bool
+    {
+        return $this->payment_method === 'cod';
     }
 
     /**

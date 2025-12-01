@@ -13,7 +13,40 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    /*
+    |--------------------------------------------------------------------------
+    | REDIS QUEUE SETUP INSTRUCTIONS
+    |--------------------------------------------------------------------------
+    |
+    | To use Redis queues with Horizon, ensure the following:
+    |
+    | 1. Install Redis on your server:
+    |    - macOS: brew install redis && brew services start redis
+    |    - Ubuntu: sudo apt install redis-server
+    |    - Docker: docker run -p 6379:6379 redis
+    |
+    | 2. Install PHP Redis extension:
+    |    - pecl install redis
+    |    - Or use predis/predis package
+    |
+    | 3. Add to your .env file:
+    |    QUEUE_CONNECTION=redis
+    |    REDIS_HOST=127.0.0.1
+    |    REDIS_PASSWORD=null
+    |    REDIS_PORT=6379
+    |
+    | 4. Install Horizon:
+    |    composer require laravel/horizon
+    |
+    | 5. Run Horizon:
+    |    php artisan horizon
+    |
+    | 6. For production, set up Supervisor:
+    |    See config/supervisor.conf.example
+    |
+    */
+
+    'default' => env('QUEUE_CONNECTION', 'redis'),
 
     /*
     |--------------------------------------------------------------------------

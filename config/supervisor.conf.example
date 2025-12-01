@@ -1,0 +1,92 @@
+;==============================================================================
+; SUPERVISOR CONFIGURATION FOR LARAVEL HORIZON
+;==============================================================================
+;
+; This is an example Supervisor configuration for running Laravel Horizon
+; in production. Supervisor ensures Horizon stays running and restarts
+; it automatically if it crashes.
+;
+; SETUP INSTRUCTIONS:
+;
+; 1. Install Supervisor:
+;    Ubuntu/Debian: sudo apt-get install supervisor
+;    CentOS/RHEL:   sudo yum install supervisor
+;    macOS:         brew install supervisor
+;
+; 2. Copy this file to Supervisor's config directory:
+;    sudo cp config/supervisor.conf.example /etc/supervisor/conf.d/horizon.conf
+;
+; 3. Update the paths in the configuration below to match your server:
+;    - directory: Your Laravel project path
+;    - command: Path to PHP and artisan
+;    - user: The user that should run the process
+;    - stdout_logfile: Path for log files
+;
+; 4. Reload Supervisor:
+;    sudo supervisorctl reread
+;    sudo supervisorctl update
+;    sudo supervisorctl start horizon
+;
+; 5. Check status:
+;    sudo supervisorctl status horizon
+;
+; DEPLOYMENT:
+; When deploying new code, restart Horizon:
+;    php artisan horizon:terminate
+;    sudo supervisorctl restart horizon
+;
+;==============================================================================
+
+[program:horizon]
+process_name=%(program_name)s
+command=php /var/www/your-app/artisan horizon
+autostart=true
+autorestart=true
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/www/your-app/storage/logs/horizon.log
+stopwaitsecs=3600
+
+;==============================================================================
+; OPTIONAL: SEPARATE QUEUE WORKERS (if not using Horizon)
+;==============================================================================
+; You can use these if you want to run queue workers without Horizon
+;
+; [program:laravel-worker-default]
+; process_name=%(program_name)s_%(process_num)02d
+; command=php /var/www/your-app/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+; autostart=true
+; autorestart=true
+; stopasgroup=true
+; killasgroup=true
+; user=www-data
+; numprocs=2
+; redirect_stderr=true
+; stdout_logfile=/var/www/your-app/storage/logs/worker.log
+; stopwaitsecs=3600
+;
+; [program:laravel-worker-notifications]
+; process_name=%(program_name)s_%(process_num)02d
+; command=php /var/www/your-app/artisan queue:work redis --queue=notifications --sleep=3 --tries=3 --max-time=3600
+; autostart=true
+; autorestart=true
+; stopasgroup=true
+; killasgroup=true
+; user=www-data
+; numprocs=2
+; redirect_stderr=true
+; stdout_logfile=/var/www/your-app/storage/logs/worker-notifications.log
+; stopwaitsecs=3600
+;
+; [program:laravel-worker-payments]
+; process_name=%(program_name)s_%(process_num)02d
+; command=php /var/www/your-app/artisan queue:work redis --queue=payments --sleep=3 --tries=3 --max-time=3600
+; autostart=true
+; autorestart=true
+; stopasgroup=true
+; killasgroup=true
+; user=www-data
+; numprocs=1
+; redirect_stderr=true
+; stdout_logfile=/var/www/your-app/storage/logs/worker-payments.log
+; stopwaitsecs=3600

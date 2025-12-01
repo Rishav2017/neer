@@ -8,17 +8,28 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\AddressController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentWebhookController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\DeliveryPartnerController;
 use App\Http\Controllers\Api\V1\Admin\OrderManagementController;
+use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 
 // Public routes
 Route::prefix('auth')->group(function () {
   Route::post('login', [AuthController::class, 'login']);
+  Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
 // Public category and product listing
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('products', [ProductController::class, 'index']);
+
+// Payment webhooks (no auth - verified by signature)
+Route::prefix('payments')->group(function () {
+  Route::post('webhook', [PaymentWebhookController::class, 'handleRazorpay']);
+  Route::post('webhook/{gateway}', [PaymentWebhookController::class, 'handle']);
+});
 
 // Admin routes (require admin role)
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
@@ -51,6 +62,16 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
   Route::post('orders/{order}/unassign', [OrderManagementController::class, 'unassignPartner']);
   Route::patch('orders/{order}/status', [OrderManagementController::class, 'updateStatus']);
   Route::post('orders/{order}/cancel', [OrderManagementController::class, 'cancel']);
+
+  // Dashboard & Analytics
+  Route::get('stats', [AdminDashboardController::class, 'stats']);
+  Route::get('analytics', [AdminDashboardController::class, 'analytics']);
+  Route::get('stats/realtime', [AdminDashboardController::class, 'realtimeStats']);
+  Route::get('reports/payments', [AdminDashboardController::class, 'paymentReports']);
+
+  // Notifications (Admin sending to users)
+  Route::post('notifications/send', [NotificationController::class, 'send']);
+  Route::post('notifications/send-bulk', [NotificationController::class, 'sendBulk']);
 });
 
 // User routes (require authentication)
@@ -77,4 +98,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
   Route::put('addresses/{id}', [AddressController::class, 'update']);
   Route::delete('addresses/{id}', [AddressController::class, 'destroy']);
   Route::patch('addresses/{id}/default', [AddressController::class, 'setDefault']);
+
+  // Payment management
+  Route::prefix('payments')->group(function () {
+    Route::post('create-order', [PaymentController::class, 'createOrder']);
+    Route::post('verify', [PaymentController::class, 'verifyPayment']);
+    Route::get('{orderId}/status', [PaymentController::class, 'status']);
+    Route::get('history', [PaymentController::class, 'history']);
+  });
+
+  // Push notification token management
+  Route::prefix('notifications')->group(function () {
+    Route::post('register-token', [NotificationController::class, 'registerToken']);
+    Route::delete('unregister-token', [NotificationController::class, 'unregisterToken']);
+    Route::get('history', [NotificationController::class, 'history']);
+    Route::get('{id}', [NotificationController::class, 'show']);
+  });
 });
