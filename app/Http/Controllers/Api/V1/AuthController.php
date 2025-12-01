@@ -27,8 +27,14 @@ class AuthController extends Controller
       // Get phone from provider
       $phone = $this->otpProvider->getUserPhoneFromToken($request->token);
 
-      // Create or fetch user
-      $user = User::firstOrCreate(['phone' => $phone], ['role' => 'customer']);
+      // Create or fetch user with default name
+      $user = User::firstOrCreate(
+        ['phone' => $phone], 
+        [
+          'role' => 'customer',
+          'name' => 'User ' . substr($phone, -4) // Use last 4 digits as default name
+        ]
+      );
 
       $token = $user->createToken('auth_token')->plainTextToken;
 

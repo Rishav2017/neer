@@ -11,7 +11,13 @@ class FirebaseService
 
   public function __construct()
   {
-    $factory = (new Factory)->withServiceAccount(storage_path('firebase/firebase_credentials.json'));
+    $credentialsPath = storage_path('firebase/firebase_credentials.json');
+    
+    if (!file_exists($credentialsPath)) {
+      throw new \RuntimeException('Firebase credentials file not found at: ' . $credentialsPath);
+    }
+
+    $factory = (new Factory)->withServiceAccount($credentialsPath);
     $this->auth = $factory->createAuth();
   }
 
