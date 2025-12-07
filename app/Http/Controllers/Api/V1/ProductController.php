@@ -14,7 +14,8 @@ class ProductController extends Controller
     use ApiResponse;
 
     /**
-     * Create a product in a subcategory (Admin only)
+     * Create a product in a sub-subcategory (Admin only)
+     * Products can only be assigned to level 2 categories (sub-subcategories)
      */
     public function store(Request $request)
     {
@@ -23,7 +24,8 @@ class ProductController extends Controller
                 'required',
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($query) {
-                    $query->whereNotNull('parent_id');
+                    // Only allow level 2 categories (sub-subcategories)
+                    $query->where('level', 2);
                 }),
             ],
             'name' => 'required|string|max:255',
@@ -31,29 +33,39 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'stock_quantity' => 'required|integer|min:0',
             'image_url' => 'nullable|url|max:255',
+        ], [
+            'sub_category_id.exists' => 'Products can only be assigned to sub-subcategories (level 2).',
         ]);
 
         $product = Product::create($validated);
 
-        return $this->success($product->load(['subcategory.parent']), 'Product created successfully', 201);
+        return $this->success($product->load(['subcategory.parent.parent']), 'Product created successfully', 201);
     }
 
     /**
-     * List products with category and subcategory (Public)
+     * List products with full 3-level category hierarchy (Public)
      */
     public function index(Request $request)
     {
-        $query = Product::with(['subcategory.parent']);
+        $query = Product::with(['subcategory.parent.parent']);
 
-        // Optional filters
+        // Filter by top-level category (level 0)
         if ($request->has('category_id')) {
-            $query->whereHas('subcategory', function ($q) use ($request) {
+            $query->whereHas('subcategory.parent', function ($q) use ($request) {
                 $q->where('parent_id', $request->category_id);
             });
         }
 
+        // Filter by subcategory (level 1)
         if ($request->has('sub_category_id')) {
-            $query->where('sub_category_id', $request->sub_category_id);
+            $query->whereHas('subcategory', function ($q) use ($request) {
+                $q->where('parent_id', $request->sub_category_id);
+            });
+        }
+
+        // Filter by sub-subcategory (level 2) - direct product category
+        if ($request->has('sub_sub_category_id')) {
+            $query->where('sub_category_id', $request->sub_sub_category_id);
         }
 
         if ($request->has('search')) {
@@ -84,7 +96,8 @@ class ProductController extends Controller
                 'required',
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($query) {
-                    $query->whereNotNull('parent_id');
+                    // Only allow level 2 categories (sub-subcategories)
+                    $query->where('level', 2);
                 }),
             ],
             'name' => 'sometimes|required|string|max:255',
@@ -92,11 +105,13 @@ class ProductController extends Controller
             'price' => 'sometimes|required|numeric|min:0',
             'stock_quantity' => 'sometimes|required|integer|min:0',
             'image_url' => 'nullable|url|max:255',
+        ], [
+            'sub_category_id.exists' => 'Products can only be assigned to sub-subcategories (level 2).',
         ]);
 
         $product->update($validated);
 
-        return $this->success($product->fresh()->load(['subcategory.parent']), 'Product updated successfully');
+        return $this->success($product->fresh()->load(['subcategory.parent.parent']), 'Product updated successfully');
     }
 
     /**

@@ -15,31 +15,54 @@
 
     <h1 class="text-3xl font-bold text-white mb-6">Edit Product</h1>
 
+    {{-- Show current category path --}}
+    @if($product->subcategory)
+        <div class="mb-6 flex items-center text-sm">
+            <span class="text-gray-500">Current Category:</span>
+            <span class="ml-2 flex items-center gap-1">
+                @if($product->subcategory->parent && $product->subcategory->parent->parent)
+                    <span class="text-blue-400">{{ $product->subcategory->parent->parent->name }}</span>
+                    <span class="text-gray-600">&gt;</span>
+                @endif
+                @if($product->subcategory->parent)
+                    <span class="text-purple-400">{{ $product->subcategory->parent->name }}</span>
+                    <span class="text-gray-600">&gt;</span>
+                @endif
+                <span class="text-teal-400 font-medium">{{ $product->subcategory->name }}</span>
+            </span>
+        </div>
+    @endif
+
     <div class="bg-[#161615] border border-[#3E3E3A] rounded-lg p-6 max-w-2xl">
         <form action="{{ route('admin.products.update', $product) }}" method="POST">
             @csrf
             @method('PUT')
 
             <div class="mb-6">
-                <label for="sub_category_id" class="block text-sm font-medium text-gray-400 mb-2">Subcategory *</label>
+                <label for="sub_category_id" class="block text-sm font-medium text-gray-400 mb-2">Category *</label>
                 <select name="sub_category_id" id="sub_category_id" required
                     class="w-full px-4 py-3 bg-[#0a0a0a] border border-[#3E3E3A] rounded-lg text-white focus:outline-none focus:border-blue-500 transition-colors">
-                    <option value="">Select a subcategory</option>
+                    <option value="">Select a sub-subcategory</option>
                     @foreach($categories as $category)
-                        @if($category->subcategories->isNotEmpty())
-                            <optgroup label="{{ $category->name }}">
-                                @foreach($category->subcategories as $subcategory)
-                                    <option value="{{ $subcategory->id }}" {{ old('sub_category_id', $product->sub_category_id) == $subcategory->id ? 'selected' : '' }}>
-                                        {{ $subcategory->name }}
-                                    </option>
-                                @endforeach
-                            </optgroup>
-                        @endif
+                        @foreach($category->subcategories as $subcategory)
+                            @if($subcategory->subcategories->isNotEmpty())
+                                <optgroup label="{{ $category->name }} > {{ $subcategory->name }}">
+                                    @foreach($subcategory->subcategories as $subSubcategory)
+                                        <option value="{{ $subSubcategory->id }}" {{ old('sub_category_id', $product->sub_category_id) == $subSubcategory->id ? 'selected' : '' }}>
+                                            {{ $subSubcategory->name }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                        @endforeach
                     @endforeach
                 </select>
                 @error('sub_category_id')
                     <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
                 @enderror
+                <p class="mt-2 text-xs text-gray-500">
+                    Products can only be assigned to sub-subcategories (the deepest level of the category hierarchy).
+                </p>
             </div>
 
             <div class="mb-6">

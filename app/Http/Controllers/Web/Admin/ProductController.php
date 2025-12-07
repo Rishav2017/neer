@@ -11,22 +11,29 @@ use Illuminate\Validation\Rule;
 class ProductController extends Controller
 {
     /**
-     * Display a listing of products
+     * Display a listing of products with 3-level category filtering
      */
     public function index(Request $request)
     {
-        $query = Product::with('subcategory.parent');
+        $query = Product::with('subcategory.parent.parent');
 
-        // Filter by category
+        // Filter by top-level category (level 0)
         if ($request->filled('category_id')) {
-            $query->whereHas('subcategory', function ($q) use ($request) {
+            $query->whereHas('subcategory.parent', function ($q) use ($request) {
                 $q->where('parent_id', $request->category_id);
             });
         }
 
-        // Filter by subcategory
+        // Filter by subcategory (level 1)
         if ($request->filled('sub_category_id')) {
-            $query->where('sub_category_id', $request->sub_category_id);
+            $query->whereHas('subcategory', function ($q) use ($request) {
+                $q->where('parent_id', $request->sub_category_id);
+            });
+        }
+
+        // Filter by sub-subcategory (level 2) - direct product category
+        if ($request->filled('sub_sub_category_id')) {
+            $query->where('sub_category_id', $request->sub_sub_category_id);
         }
 
         // Search
@@ -39,7 +46,12 @@ class ProductController extends Controller
         }
 
         $products = $query->orderBy('created_at', 'desc')->paginate(15);
-        $categories = Category::whereNull('parent_id')->with('subcategories')->orderBy('name')->get();
+
+        // Load 3-level category hierarchy for filters
+        $categories = Category::where('level', 0)
+            ->with(['subcategories.subcategories'])
+            ->orderBy('name')
+            ->get();
 
         return view('admin.products.index', compact('products', 'categories'));
     }
@@ -49,8 +61,9 @@ class ProductController extends Controller
      */
     public function create()
     {
-        $categories = Category::whereNull('parent_id')
-            ->with('subcategories')
+        // Load full 3-level hierarchy for selection
+        $categories = Category::where('level', 0)
+            ->with(['subcategories.subcategories'])
             ->orderBy('name')
             ->get();
 
@@ -67,7 +80,8 @@ class ProductController extends Controller
                 'required',
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($query) {
-                    $query->whereNotNull('parent_id');
+                    // Only allow level 2 categories (sub-sub-categories)
+                    $query->where('level', 2);
                 }),
             ],
             'name' => 'required|string|max:255',
@@ -76,7 +90,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0',
             'image_url' => 'nullable|url|max:255',
         ], [
-            'sub_category_id.exists' => 'Please select a valid subcategory.',
+            'sub_category_id.exists' => 'Please select a valid sub-subcategory.',
         ]);
 
         Product::create($validated);
@@ -89,8 +103,11 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        $categories = Category::whereNull('parent_id')
-            ->with('subcategories')
+        $product->load('subcategory.parent.parent');
+
+        // Load full 3-level hierarchy for selection
+        $categories = Category::where('level', 0)
+            ->with(['subcategories.subcategories'])
             ->orderBy('name')
             ->get();
 
@@ -107,7 +124,8 @@ class ProductController extends Controller
                 'required',
                 'uuid',
                 Rule::exists('categories', 'id')->where(function ($query) {
-                    $query->whereNotNull('parent_id');
+                    // Only allow level 2 categories (sub-sub-categories)
+                    $query->where('level', 2);
                 }),
             ],
             'name' => 'required|string|max:255',
@@ -116,7 +134,7 @@ class ProductController extends Controller
             'stock_quantity' => 'required|integer|min:0',
             'image_url' => 'nullable|url|max:255',
         ], [
-            'sub_category_id.exists' => 'Please select a valid subcategory.',
+            'sub_category_id.exists' => 'Please select a valid sub-subcategory.',
         ]);
 
         $product->update($validated);

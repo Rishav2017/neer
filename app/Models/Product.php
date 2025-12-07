@@ -26,7 +26,7 @@ class Product extends Model
     ];
 
     /**
-     * Get the subcategory this product belongs to
+     * Get the sub-sub-category this product belongs to (level 2)
      */
     public function subcategory(): BelongsTo
     {
@@ -34,12 +34,42 @@ class Product extends Model
     }
 
     /**
-     * Get the parent category through subcategory
-     * This is a helper method to access the parent category
+     * Alias for subcategory - the sub-sub-category (level 2)
      */
-    public function getCategoryAttribute()
+    public function subSubcategory(): BelongsTo
     {
-        return $this->subcategory?->parent;
+        return $this->subcategory();
+    }
+
+    /**
+     * Get the sub-category (level 1) - parent of sub-sub-category
+     */
+    public function getParentCategoryAttribute()
+    {
+        $subSubCategory = $this->getRelationValue('subcategory');
+        return $subSubCategory?->parent;
+    }
+
+    /**
+     * Get the top-level category (level 0) - grandparent of sub-sub-category
+     */
+    public function getRootCategoryAttribute()
+    {
+        $subSubCategory = $this->getRelationValue('subcategory');
+        return $subSubCategory?->parent?->parent;
+    }
+
+    /**
+     * Get the full category path as a string
+     */
+    public function getCategoryPathAttribute(): string
+    {
+        $subSubCategory = $this->getRelationValue('subcategory');
+        if (!$subSubCategory) {
+            return 'N/A';
+        }
+
+        return $subSubCategory->full_path;
     }
 
     /**

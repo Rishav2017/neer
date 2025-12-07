@@ -7,9 +7,17 @@ use App\Http\Controllers\Web\Admin\CategoryController;
 use App\Http\Controllers\Web\Admin\ProductController;
 use App\Http\Controllers\Web\Admin\DeliveryPartnerController;
 use App\Http\Controllers\Web\Admin\OrderController;
+use App\Http\Controllers\Web\PaymentCheckoutController;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+// Payment Web Checkout Routes (for mobile app integration)
+Route::prefix('payment')->group(function () {
+    Route::get('/checkout/{orderId}', [PaymentCheckoutController::class, 'checkout'])->name('payment.checkout');
+    Route::post('/success', [PaymentCheckoutController::class, 'success'])->name('payment.success');
+    Route::get('/cancel', [PaymentCheckoutController::class, 'cancel'])->name('payment.cancel');
 });
 
 // Default login route (redirects to admin login)

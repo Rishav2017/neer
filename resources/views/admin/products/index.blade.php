@@ -22,6 +22,8 @@
                     class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#3E3E3A] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="Search products...">
             </div>
+
+            <!-- Level 0: Category Filter -->
             <div class="w-48">
                 <select name="category_id" id="category_filter"
                     class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#3E3E3A] rounded-lg text-white focus:outline-none focus:border-blue-500 transition-colors">
@@ -33,23 +35,48 @@
                     @endforeach
                 </select>
             </div>
+
+            <!-- Level 1: Subcategory Filter -->
             <div class="w-48">
                 <select name="sub_category_id" id="subcategory_filter"
                     class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#3E3E3A] rounded-lg text-white focus:outline-none focus:border-blue-500 transition-colors">
                     <option value="">All Subcategories</option>
                     @foreach($categories as $category)
                         @foreach($category->subcategories as $subcategory)
-                            <option value="{{ $subcategory->id }}" data-parent="{{ $category->id }}" {{ request('sub_category_id') == $subcategory->id ? 'selected' : '' }}>
-                                {{ $category->name }} > {{ $subcategory->name }}
+                            <option value="{{ $subcategory->id }}"
+                                data-parent="{{ $category->id }}"
+                                {{ request('sub_category_id') == $subcategory->id ? 'selected' : '' }}>
+                                {{ $category->name }} &gt; {{ $subcategory->name }}
                             </option>
                         @endforeach
                     @endforeach
                 </select>
             </div>
+
+            <!-- Level 2: Sub-subcategory Filter -->
+            <div class="w-56">
+                <select name="sub_sub_category_id" id="subsubcategory_filter"
+                    class="w-full px-4 py-2 bg-[#0a0a0a] border border-[#3E3E3A] rounded-lg text-white focus:outline-none focus:border-blue-500 transition-colors">
+                    <option value="">All Sub-subcategories</option>
+                    @foreach($categories as $category)
+                        @foreach($category->subcategories as $subcategory)
+                            @foreach($subcategory->subcategories as $subSubcategory)
+                                <option value="{{ $subSubcategory->id }}"
+                                    data-parent="{{ $subcategory->id }}"
+                                    data-grandparent="{{ $category->id }}"
+                                    {{ request('sub_sub_category_id') == $subSubcategory->id ? 'selected' : '' }}>
+                                    {{ $category->name }} &gt; {{ $subcategory->name }} &gt; {{ $subSubcategory->name }}
+                                </option>
+                            @endforeach
+                        @endforeach
+                    @endforeach
+                </select>
+            </div>
+
             <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                 Filter
             </button>
-            @if(request()->hasAny(['search', 'category_id', 'sub_category_id']))
+            @if(request()->hasAny(['search', 'category_id', 'sub_category_id', 'sub_sub_category_id']))
                 <a href="{{ route('admin.products.index') }}" class="px-4 py-2 bg-[#3E3E3A] hover:bg-[#4a4a47] text-white font-medium rounded-lg transition-colors">
                     Clear
                 </a>
@@ -64,7 +91,7 @@
             </svg>
             <h3 class="text-lg font-medium text-white mb-2">No products found</h3>
             <p class="text-gray-400 mb-4">
-                @if(request()->hasAny(['search', 'category_id', 'sub_category_id']))
+                @if(request()->hasAny(['search', 'category_id', 'sub_category_id', 'sub_sub_category_id']))
                     No products match your filters. Try adjusting your search criteria.
                 @else
                     Get started by creating your first product.
@@ -84,7 +111,7 @@
                     <thead class="bg-[#0a0a0a]">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Product</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Category Path</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Stock</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
@@ -112,9 +139,24 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-white">{{ $product->subcategory->parent->name ?? 'N/A' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $product->subcategory->name ?? 'N/A' }}</div>
+                                <td class="px-6 py-4">
+                                    <div class="text-xs space-y-0.5">
+                                        @if($product->subcategory)
+                                            <div class="flex items-center flex-wrap gap-1">
+                                                @if($product->subcategory->parent && $product->subcategory->parent->parent)
+                                                    <span class="text-blue-400">{{ $product->subcategory->parent->parent->name }}</span>
+                                                    <span class="text-gray-600">&gt;</span>
+                                                @endif
+                                                @if($product->subcategory->parent)
+                                                    <span class="text-purple-400">{{ $product->subcategory->parent->name }}</span>
+                                                    <span class="text-gray-600">&gt;</span>
+                                                @endif
+                                                <span class="text-teal-400">{{ $product->subcategory->name }}</span>
+                                            </div>
+                                        @else
+                                            <span class="text-gray-500">N/A</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm font-medium text-green-400">${{ number_format($product->price, 2) }}</span>
@@ -167,4 +209,53 @@
         @endif
     @endif
 </div>
+
+@push('scripts')
+<script>
+    // Cascade filter dropdowns
+    document.addEventListener('DOMContentLoaded', function() {
+        const categoryFilter = document.getElementById('category_filter');
+        const subcategoryFilter = document.getElementById('subcategory_filter');
+        const subsubcategoryFilter = document.getElementById('subsubcategory_filter');
+
+        function filterOptions(selectElement, parentValue, dataAttr) {
+            const options = selectElement.querySelectorAll('option');
+            let firstVisible = null;
+
+            options.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = '';
+                    return;
+                }
+
+                const parent = option.getAttribute(dataAttr);
+                if (!parentValue || parent === parentValue) {
+                    option.style.display = '';
+                    if (!firstVisible) firstVisible = option;
+                } else {
+                    option.style.display = 'none';
+                    if (option.selected) {
+                        option.selected = false;
+                        selectElement.querySelector('option[value=""]').selected = true;
+                    }
+                }
+            });
+        }
+
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function() {
+                filterOptions(subcategoryFilter, this.value, 'data-parent');
+                filterOptions(subsubcategoryFilter, '', 'data-grandparent');
+                subsubcategoryFilter.value = '';
+            });
+        }
+
+        if (subcategoryFilter) {
+            subcategoryFilter.addEventListener('change', function() {
+                filterOptions(subsubcategoryFilter, this.value, 'data-parent');
+            });
+        }
+    });
+</script>
+@endpush
 @endsection
